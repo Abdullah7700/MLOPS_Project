@@ -1,0 +1,19 @@
+name: My Workflow
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: |
+          # Add your build commands here
+          echo "Building project..."
+      - name: Test project
+        run: |
+          # Add your test commands here
+          echo "Testing project..."
