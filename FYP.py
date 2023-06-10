@@ -1,11 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 # ## Basic Library Imports
 
 # In[1]:
 
 
+from sklearn.tree import DecisionTreeRegressor
+import plotly.graph_objs as go
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
+from statsmodels.tsa.arima.model import ARIMA
+import statsmodels.api as sm
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.model_selection import train_test_split
+from lazypredict.Supervised import LazyClassifier
+from sklearn.decomposition import PCA
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -31,8 +43,8 @@ import mlflow.sklearn
 # In[4]:
 
 
-df = pd.read_csv('data.csv')
-df = df.iloc[0:584524,0:21]
+df = pd.read_csv("data.csv")
+df = df.iloc[0:584524, 0:21]
 df
 
 
@@ -46,75 +58,94 @@ df.columns
 
 
 percent_missing = df.isnull().sum() * 100 / len(df)
-missing_value_df = pd.DataFrame({'percent_missing': percent_missing})
+missing_value_df = pd.DataFrame({"percent_missing": percent_missing})
 missing_value_df
 
 
 # In[7]:
 
 
-df = df.dropna(subset=['status', 'category_name_1', 'Customer Since', 'Customer ID'])
+df = df.dropna(subset=["status", "category_name_1",
+               "Customer Since", "Customer ID"])
 df
 
 
 # In[8]:
 
 
-df['Month'] = df['Month'].astype(int)
+df["Month"] = df["Month"].astype(int)
 
 
 # In[9]:
 
 
-df.loc[df['Month'] == 9, 'Month Name'] = 'September' 
-df.loc[df['Month'] == 8, 'Month Name'] = 'August' 
-df.loc[df['Month'] == 7, 'Month Name'] = 'July' 
-df.loc[df['Month'] == 6, 'Month Name'] = 'June' 
-df.loc[df['Month'] == 5, 'Month Name'] = 'May' 
-df.loc[df['Month'] == 4, 'Month Name'] = 'April' 
-df.loc[df['Month'] == 3, 'Month Name'] = 'March' 
-df.loc[df['Month'] == 2, 'Month Name'] = 'February' 
-df.loc[df['Month'] == 1, 'Month Name'] = 'January' 
-df.loc[df['Month'] == 12, 'Month Name'] = 'December' 
-df.loc[df['Month'] == 11, 'Month Name'] = 'November' 
-df.loc[df['Month'] == 10, 'Month Name'] = 'October'
+df.loc[df["Month"] == 9, "Month Name"] = "September"
+df.loc[df["Month"] == 8, "Month Name"] = "August"
+df.loc[df["Month"] == 7, "Month Name"] = "July"
+df.loc[df["Month"] == 6, "Month Name"] = "June"
+df.loc[df["Month"] == 5, "Month Name"] = "May"
+df.loc[df["Month"] == 4, "Month Name"] = "April"
+df.loc[df["Month"] == 3, "Month Name"] = "March"
+df.loc[df["Month"] == 2, "Month Name"] = "February"
+df.loc[df["Month"] == 1, "Month Name"] = "January"
+df.loc[df["Month"] == 12, "Month Name"] = "December"
+df.loc[df["Month"] == 11, "Month Name"] = "November"
+df.loc[df["Month"] == 10, "Month Name"] = "October"
 
 
 # In[10]:
 
 
-df.loc[df['price'] <= 500 , 'Price Range'] = '< 500' 
-df.loc[(df['price'] <= 1000) &  (df['price'] > 500), 'Price Range'] = '500 - 1000' 
-df.loc[(df['price'] <= 1500) &  (df['price'] > 1000), 'Price Range'] = '1000 - 1500' 
-df.loc[(df['price'] <= 2000) &  (df['price'] > 1500), 'Price Range'] = '1500 - 2000' 
-df.loc[(df['price'] <= 3000) &  (df['price'] > 2000), 'Price Range'] = '2000 - 3000' 
-df.loc[(df['price'] <= 4000) &  (df['price'] > 3000), 'Price Range'] = '3000 - 4000' 
-df.loc[(df['price'] <= 5000) &  (df['price'] > 4000), 'Price Range'] = '4000 - 5000' 
-df.loc[(df['price'] > 5000), 'Price Range'] = '5000 <' 
+df.loc[df["price"] <= 500, "Price Range"] = "< 500"
+df.loc[(df["price"] <= 1000) & (df["price"] > 500),
+       "Price Range"] = "500 - 1000"
+df.loc[(df["price"] <= 1500) & (df["price"] > 1000),
+       "Price Range"] = "1000 - 1500"
+df.loc[(df["price"] <= 2000) & (df["price"] > 1500),
+       "Price Range"] = "1500 - 2000"
+df.loc[(df["price"] <= 3000) & (df["price"] > 2000),
+       "Price Range"] = "2000 - 3000"
+df.loc[(df["price"] <= 4000) & (df["price"] > 3000),
+       "Price Range"] = "3000 - 4000"
+df.loc[(df["price"] <= 5000) & (df["price"] > 4000),
+       "Price Range"] = "4000 - 5000"
+df.loc[(df["price"] > 5000), "Price Range"] = "5000 <"
 
 
 # In[11]:
 
 
-df.loc[df['discount_amount'] <= 500 , 'discount_amount Range'] = '< 500' 
-df.loc[(df['discount_amount'] <= 1000) &  (df['discount_amount'] > 500), 'discount_amount Range'] = '500 - 1000' 
-df.loc[(df['discount_amount'] <= 1500) &  (df['discount_amount'] > 1000), 'discount_amount Range'] = '1000 - 1500' 
-df.loc[(df['discount_amount'] <= 2000) &  (df['discount_amount'] > 1500), 'discount_amount Range'] = '1500 - 2000' 
-df.loc[(df['discount_amount'] <= 3000) &  (df['discount_amount'] > 2000), 'discount_amount Range'] = '2000 - 3000' 
-df.loc[(df['discount_amount'] > 3000), 'discount_amount Range'] = '3000 <'  
+df.loc[df["discount_amount"] <= 500, "discount_amount Range"] = "< 500"
+df.loc[
+    (df["discount_amount"] <= 1000) & (df["discount_amount"] > 500),
+    "discount_amount Range",
+] = "500 - 1000"
+df.loc[
+    (df["discount_amount"] <= 1500) & (df["discount_amount"] > 1000),
+    "discount_amount Range",
+] = "1000 - 1500"
+df.loc[
+    (df["discount_amount"] <= 2000) & (df["discount_amount"] > 1500),
+    "discount_amount Range",
+] = "1500 - 2000"
+df.loc[
+    (df["discount_amount"] <= 3000) & (df["discount_amount"] > 2000),
+    "discount_amount Range",
+] = "2000 - 3000"
+df.loc[(df["discount_amount"] > 3000), "discount_amount Range"] = "3000 <"
 
 
 # In[12]:
 
 
-df = df.drop(['sku', 'sales_commission_code'], axis=1)
+df = df.drop(["sku", "sales_commission_code"], axis=1)
 
 
 # In[13]:
 
 
 percent_missing = df.isnull().sum() * 100 / len(df)
-missing_value_df = pd.DataFrame({'percent_missing': percent_missing})
+missing_value_df = pd.DataFrame({"percent_missing": percent_missing})
 missing_value_df
 
 
@@ -129,8 +160,8 @@ df
 # In[14]:
 
 
-temp = df['category_name_1'].value_counts()
-data = pd.DataFrame({'Category':temp.index, 'Count':temp.values})
+temp = df["category_name_1"].value_counts()
+data = pd.DataFrame({"Category": temp.index, "Count": temp.values})
 data
 
 
@@ -143,8 +174,8 @@ y = data["Count"].to_list()
 # In[16]:
 
 
-fig = px.bar(data, x="Count", y="Category", orientation='h', text= y)
-fig.update_traces(marker_color='pink')
+fig = px.bar(data, x="Count", y="Category", orientation="h", text=y)
+fig.update_traces(marker_color="pink")
 fig.show()
 
 
@@ -153,23 +184,28 @@ fig.show()
 # In[17]:
 
 
-df['status'].value_counts()
+df["status"].value_counts()
 
 
 # In[18]:
 
 
-temp = df['status'].value_counts()
-data = pd.DataFrame({'Status':temp.index, 'Count':temp.values})
+temp = df["status"].value_counts()
+data = pd.DataFrame({"Status": temp.index, "Count": temp.values})
 data = data.head(7)
 
 
 # In[19]:
 
 
-fig = px.pie(data, values="Count", names="Status",
-             color_discrete_sequence=px.colors.sequential.RdBu,
-             opacity=0.7, hole=0.5)
+fig = px.pie(
+    data,
+    values="Count",
+    names="Status",
+    color_discrete_sequence=px.colors.sequential.RdBu,
+    opacity=0.7,
+    hole=0.5,
+)
 fig.show()
 
 
@@ -178,8 +214,8 @@ fig.show()
 # In[115]:
 
 
-temp = df['payment_method'].value_counts()
-data = pd.DataFrame({'Payment Method':temp.index, 'Count':temp.values})
+temp = df["payment_method"].value_counts()
+data = pd.DataFrame({"Payment Method": temp.index, "Count": temp.values})
 data
 
 
@@ -188,8 +224,8 @@ data
 
 y = data["Count"].to_list()
 
-fig = px.bar(data, x="Count", y="Payment Method", orientation='h', text= y)
-fig.update_traces(marker_color='teal')
+fig = px.bar(data, x="Count", y="Payment Method", orientation="h", text=y)
+fig.update_traces(marker_color="teal")
 fig.show()
 
 
@@ -198,18 +234,25 @@ fig.show()
 # In[117]:
 
 
-df['BI Status'].value_counts()
-temp = df['BI Status'].value_counts()
-data = pd.DataFrame({'Status':temp.index, 'Count':temp.values})
+df["BI Status"].value_counts()
+temp = df["BI Status"].value_counts()
+data = pd.DataFrame({"Status": temp.index, "Count": temp.values})
 data = data.head(3)
 
 
 # In[118]:
 
 
-fig = px.pie(data, values="Count", names="Status", color = "Status", color_discrete_map={'Net':'darkblue',
-                                 'Gross':'cyan',
-                                 'Valid':'royalblue'}, opacity=0.7, hole=0.5)
+fig = px.pie(
+    data,
+    values="Count",
+    names="Status",
+    color="Status",
+    color_discrete_map={"Net": "darkblue",
+                        "Gross": "cyan", "Valid": "royalblue"},
+    opacity=0.7,
+    hole=0.5,
+)
 fig.show()
 
 
@@ -218,22 +261,31 @@ fig.show()
 # In[119]:
 
 
-x = df['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = df["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[120]:
 
 
-x = ["< 500", "500 - 1000", "1000 - 1500", "1500 - 2000", "2000 - 3000", "3000 - 4000", "4000 - 5000 ", "5000 < "]
+x = [
+    "< 500",
+    "500 - 1000",
+    "1000 - 1500",
+    "1500 - 2000",
+    "2000 - 3000",
+    "3000 - 4000",
+    "4000 - 5000 ",
+    "5000 < ",
+]
 y = [205146, 136202, 120448, 46009, 28497, 24225, 13744, 10253]
 
 
 # In[121]:
 
 
-fig = px.bar(df, x = x, y=y, text= y)
-fig.update_traces(marker_color='gold')
+fig = px.bar(df, x=x, y=y, text=y)
+fig.update_traces(marker_color="gold")
 fig.show()
 
 
@@ -242,12 +294,12 @@ fig.show()
 # In[122]:
 
 
-x = df['discount_amount Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = df["discount_amount Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # ## Price Range Distribuion YoY
-# 
+#
 
 # In[123]:
 
@@ -260,22 +312,22 @@ year_2018 = df.loc[df["Year"] == 2018]
 # In[124]:
 
 
-x = year_2016['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = year_2016["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[125]:
 
 
-x = year_2017['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = year_2017["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[126]:
 
 
-x = year_2018['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = year_2018["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # ## Customer-Since Distribution
@@ -283,7 +335,7 @@ pd.DataFrame({'Price Range':x.index, 'Count':x.values})
 # In[127]:
 
 
-df['Customer Since'].value_counts()
+df["Customer Since"].value_counts()
 
 
 # ## Category-Wise Price
@@ -291,94 +343,94 @@ df['Customer Since'].value_counts()
 # In[128]:
 
 
-df['category_name_1'].value_counts()
+df["category_name_1"].value_counts()
 
 
 # In[129]:
 
 
-Mobiles = df.loc[df["category_name_1"] == 'Mobiles & Tablets']
+Mobiles = df.loc[df["category_name_1"] == "Mobiles & Tablets"]
 MF = df.loc[df["category_name_1"] == "Men's Fashion"]
 WF = df.loc[df["category_name_1"] == "Women's Fashion"]
-Apl = df.loc[df["category_name_1"] == 'Appliances']
-SS = df.loc[df["category_name_1"] == 'Superstore']
-BG = df.loc[df["category_name_1"] == 'Beauty & Grooming']
-Sogh = df.loc[df["category_name_1"] == 'Soghaat']
-Others = df.loc[df["category_name_1"] == 'Others']
-HL = df.loc[df["category_name_1"] == 'Home & Living']
-Ent = df.loc[df["category_name_1"] == 'Entertainment']
-HS = df.loc[df["category_name_1"] == 'Health & Sports']
-KB = df.loc[df["category_name_1"] == 'Kids & Baby']
+Apl = df.loc[df["category_name_1"] == "Appliances"]
+SS = df.loc[df["category_name_1"] == "Superstore"]
+BG = df.loc[df["category_name_1"] == "Beauty & Grooming"]
+Sogh = df.loc[df["category_name_1"] == "Soghaat"]
+Others = df.loc[df["category_name_1"] == "Others"]
+HL = df.loc[df["category_name_1"] == "Home & Living"]
+Ent = df.loc[df["category_name_1"] == "Entertainment"]
+HS = df.loc[df["category_name_1"] == "Health & Sports"]
+KB = df.loc[df["category_name_1"] == "Kids & Baby"]
 
 
 # In[130]:
 
 
-de = Mobiles['Price Range'].value_counts()
-dy = pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+de = Mobiles["Price Range"].value_counts()
+dy = pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[131]:
 
 
-x = Apl['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = Apl["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[132]:
 
 
-x = SS['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = SS["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[133]:
 
 
-x = BG['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = BG["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[134]:
 
 
-x = Sogh['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = Sogh["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[135]:
 
 
-x = Others['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = Others["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[136]:
 
 
-x = HL['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = HL["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[137]:
 
 
-x = Ent['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = Ent["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[138]:
 
 
-x = HS['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = HS["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # In[139]:
 
 
-x = KB['Price Range'].value_counts()
-pd.DataFrame({'Price Range':x.index, 'Count':x.values})
+x = KB["Price Range"].value_counts()
+pd.DataFrame({"Price Range": x.index, "Count": x.values})
 
 
 # ## Month on Month Sales
@@ -391,15 +443,13 @@ m1 = ["July", "August", "September", "October", "November", "December"]
 arr = []
 
 for year in y:
-    
     sub = df[df["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -407,18 +457,29 @@ for year in y:
 
 
 y = [2017.0]
-m1 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+m1 = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
 
 for year in y:
-    
     sub = df[df["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -429,34 +490,59 @@ y = [2018.0]
 m1 = ["January", "February", "March", "April", "May", "June", "July", "August"]
 
 for year in y:
-    
     sub = df[df["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
-        
+
 print(arr)
 
 
 # In[143]:
 
 
-months = ["July 2016", "Aug 2016", "Sep 2016", "Oct 2016", "Nov 2016", "Dec 2016", "Jan 2017", "Feb 2017", "Mar 2017", "Apr 2017", "May 2017", "June 2017", "July 2017", "Aug 2017", "Sep 2017", "Oct 2017", "Nov 2017", "Dec 2017", "Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018", "May 2018", "June 2018", "July 2018", "Aug 2018"]
-sss = pd.DataFrame({'Months':months, 'Sales':arr})
+months = [
+    "July 2016",
+    "Aug 2016",
+    "Sep 2016",
+    "Oct 2016",
+    "Nov 2016",
+    "Dec 2016",
+    "Jan 2017",
+    "Feb 2017",
+    "Mar 2017",
+    "Apr 2017",
+    "May 2017",
+    "June 2017",
+    "July 2017",
+    "Aug 2017",
+    "Sep 2017",
+    "Oct 2017",
+    "Nov 2017",
+    "Dec 2017",
+    "Jan 2018",
+    "Feb 2018",
+    "Mar 2018",
+    "Apr 2018",
+    "May 2018",
+    "June 2018",
+    "July 2018",
+    "Aug 2018",
+]
+sss = pd.DataFrame({"Months": months, "Sales": arr})
 sss
 
 
 # In[144]:
 
 
-fig = px.line(sss, x="Months", y="Sales", title='Month on Month Sales')
-fig.update_traces(line_color='green')
-fig.update_traces(mode='lines+markers')
+fig = px.line(sss, x="Months", y="Sales", title="Month on Month Sales")
+fig.update_traces(line_color="green")
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -477,14 +563,36 @@ df.columns
 # In[18]:
 
 
-ml = df[["status", "category_name_1", "payment_method", "qty_ordered", "BI Status", "Year", "Month Name", "Price Range", "discount_amount Range", "Customer ID"]]
+ml = df[
+    [
+        "status",
+        "category_name_1",
+        "payment_method",
+        "qty_ordered",
+        "BI Status",
+        "Year",
+        "Month Name",
+        "Price Range",
+        "discount_amount Range",
+        "Customer ID",
+    ]
+]
 ml
 
 
 # In[19]:
 
 
-columns_to_encode = ["status", "category_name_1", "payment_method", "BI Status", "Year", "Month Name", "Price Range", "discount_amount Range"]
+columns_to_encode = [
+    "status",
+    "category_name_1",
+    "payment_method",
+    "BI Status",
+    "Year",
+    "Month Name",
+    "Price Range",
+    "discount_amount Range",
+]
 
 # Initialize the label encoder
 le = LabelEncoder()
@@ -500,11 +608,9 @@ ml
 # In[20]:
 
 
-from sklearn.decomposition import PCA
-
-X = ml.values 
-pca = PCA(n_components=10) 
-X_pca = pca.fit_transform(X) 
+X = ml.values
+pca = PCA(n_components=10)
+X_pca = pca.fit_transform(X)
 X_pca
 
 
@@ -526,16 +632,15 @@ temp
 # In[94]:
 
 
-from lazypredict.Supervised import LazyClassifier
-from sklearn.model_selection import train_test_split
-
 x = temp
 y = ml["status"]
 
-X_train, X_test, y_train, y_test = train_test_split(x,y, test_size = 0.3, random_state = 123)
+X_train, X_test, y_train, y_test = train_test_split(
+    x, y, test_size=0.3, random_state=123
+)
 
-clf = LazyClassifier(verbose = 0, ignore_warnings = True, custom_metric = None)
-models,predictions = clf.fit(X_train, X_test, y_train, y_test)
+clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
+models, predictions = clf.fit(X_train, X_test, y_train, y_test)
 print(models)
 
 
@@ -544,20 +649,15 @@ print(models)
 # In[ ]:
 
 
-from sklearn.metrics import balanced_accuracy_score
-
-
 # In[30]:
 
-
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
 X = temp
 y = ml["status"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
 desc = "Decision Tree Classifier for Order Status Prediction"
 mlflow.set_experiment("Order Status")
@@ -573,25 +673,25 @@ with mlflow.start_run(run_name="Decision Tree Classifier", description=desc) as 
     y_pred = dtc.predict(X_test)
 
     accuracy = accuracy_score(y_test, y_pred)
-    
-#     balanced_acc = balanced_accuracy_score(y_test, predictions)
-    
-#     mlflow.log_metric("Balanced_Accuracy", balanced_acc)
 
-    print("Accuracy: {:.2f}%".format(accuracy*100))
+    #     balanced_acc = balanced_accuracy_score(y_test, predictions)
+
+    #     mlflow.log_metric("Balanced_Accuracy", balanced_acc)
+
+    print("Accuracy: {:.2f}%".format(accuracy * 100))
 
 
-# ## Random Forest Classifier 
+# ## Random Forest Classifier
 
 # In[28]:
 
 
-from sklearn.ensemble import RandomForestClassifier
-
-X = ml.drop('status', axis=1)
+X = ml.drop("status", axis=1)
 y = ml["status"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
 desc = "Random Forest Classifier for Order Status Prediction"
 mlflow.set_experiment("Order Status")
@@ -600,7 +700,6 @@ mlflow.set_tracking_uri("http://localhost:5000")
 mlflow.autolog(log_input_examples=True, log_model_signatures=True)
 
 with mlflow.start_run(run_name="Random Forest Classifier", description=desc) as run:
-
     rfc = RandomForestClassifier(n_estimators=100, random_state=42)
 
     rfc.fit(X_train, y_train)
@@ -609,7 +708,7 @@ with mlflow.start_run(run_name="Random Forest Classifier", description=desc) as 
 
     accuracy = accuracy_score(y_test, y_pred)
 
-    print("Accuracy: {:.2f}%".format(accuracy*100))
+    print("Accuracy: {:.2f}%".format(accuracy * 100))
 
 
 # # Demand Forecasting
@@ -619,7 +718,7 @@ with mlflow.start_run(run_name="Random Forest Classifier", description=desc) as 
 # In[152]:
 
 
-t2 = df[df['category_name_1'] == "Mobiles & Tablets"]
+t2 = df[df["category_name_1"] == "Mobiles & Tablets"]
 
 
 # In[153]:
@@ -630,15 +729,13 @@ m1 = ["July", "August", "September", "October", "November", "December"]
 arr = []
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -646,18 +743,29 @@ for year in y:
 
 
 y = [2017.0]
-m1 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+m1 = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -668,34 +776,86 @@ y = [2018.0]
 m1 = ["January", "February", "March", "April", "May", "June", "July", "August"]
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
-        
+
 print(arr)
 
 
 # In[156]:
 
 
-months = ["July 2016", "Aug 2016", "Sep 2016", "Oct 2016", "Nov 2016", "Dec 2016", "Jan 2017", "Feb 2017", "Mar 2017", "Apr 2017", "May 2017", "June 2017", "July 2017", "Aug 2017", "Sep 2017", "Oct 2017", "Nov 2017", "Dec 2017", "Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018", "May 2018", "June 2018", "July 2018", "Aug 2018"]
-mon = [7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8]
-ses = pd.DataFrame({'Months':mon, 'Sales':arr})
-sss = pd.DataFrame({'Months':months, 'Sales':arr})
+months = [
+    "July 2016",
+    "Aug 2016",
+    "Sep 2016",
+    "Oct 2016",
+    "Nov 2016",
+    "Dec 2016",
+    "Jan 2017",
+    "Feb 2017",
+    "Mar 2017",
+    "Apr 2017",
+    "May 2017",
+    "June 2017",
+    "July 2017",
+    "Aug 2017",
+    "Sep 2017",
+    "Oct 2017",
+    "Nov 2017",
+    "Dec 2017",
+    "Jan 2018",
+    "Feb 2018",
+    "Mar 2018",
+    "Apr 2018",
+    "May 2018",
+    "June 2018",
+    "July 2018",
+    "Aug 2018",
+]
+mon = [
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+]
+ses = pd.DataFrame({"Months": mon, "Sales": arr})
+sss = pd.DataFrame({"Months": months, "Sales": arr})
 sss
 
 
 # In[157]:
 
 
-fig = px.line(sss, x="Months", y="Sales", title='Mobile Phones Sales History')
+fig = px.line(sss, x="Months", y="Sales", title="Mobile Phones Sales History")
 fig.show()
 
 
@@ -704,26 +864,30 @@ fig.show()
 # In[158]:
 
 
-import statsmodels.api as sm
+train_endog = ses["Sales"].iloc[:13]
+train_exog = ses["Months"].iloc[:13]
 
-train_endog = ses['Sales'].iloc[:13] 
-train_exog = ses['Months'].iloc[:13]  
+test_endog = ses["Sales"].iloc[-12:]
+test_exog = ses["Months"].iloc[-12:]
 
-test_endog = ses['Sales'].iloc[-12:]  
-test_exog = ses['Months'].iloc[-12:]  
-
-model = sm.tsa.statespace.SARIMAX(endog=train_endog, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12))
+model = sm.tsa.statespace.SARIMAX(
+    endog=train_endog, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12)
+)
 fit_model = model.fit()
 
-future_exog = test_exog  
+future_exog = test_exog
 future_preds = fit_model.forecast(steps=12, exog=future_exog)
 
-rmse = ((test_endog - future_preds)**2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((test_endog - future_preds) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
-pred_df = pd.DataFrame({'Actual': test_endog, 'Predicted': future_preds}, index=test_endog.index)
-fig = px.line(pred_df, x=pred_df.index, y=pred_df.columns, title='Sales Monthly Forecast')
-fig.update_traces(mode='lines+markers')
+pred_df = pd.DataFrame(
+    {"Actual": test_endog, "Predicted": future_preds}, index=test_endog.index
+)
+fig = px.line(
+    pred_df, x=pred_df.index, y=pred_df.columns, title="Sales Monthly Forecast"
+)
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -732,9 +896,8 @@ fig.show()
 # In[159]:
 
 
-cr = pd.DataFrame({'Sales':sss["Sales"]})
+cr = pd.DataFrame({"Sales": sss["Sales"]})
 
-from statsmodels.tsa.arima.model import ARIMA
 
 train = cr.iloc[:-12]
 test = cr.iloc[-12:]
@@ -742,10 +905,11 @@ test = cr.iloc[-12:]
 model = ARIMA(train, order=(1, 1, 1))
 fit_model = model.fit()
 
-preds = fit_model.predict(start=test.index[0], end=test.index[-1], type='levels')
+preds = fit_model.predict(
+    start=test.index[0], end=test.index[-1], type="levels")
 
-rmse = ((test['Sales'] - preds) ** 2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((test["Sales"] - preds) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
 
 # ## Random Forest Regressor
@@ -753,24 +917,20 @@ print(f'RMSE: {rmse:.2f}')
 # In[160]:
 
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
-import plotly.graph_objs as go
-
 train_data = ses.sample(frac=0.6, random_state=1)
 test_data = ses.drop(train_data.index)
 
-X_train = train_data[['Months', 'Sales']].values
-y_train = train_data['Sales'].values
-X_test = test_data[['Months', 'Sales']].values
-y_test = test_data['Sales'].values
+X_train = train_data[["Months", "Sales"]].values
+y_train = train_data["Sales"].values
+X_test = test_data[["Months", "Sales"]].values
+y_test = test_data["Sales"].values
 
 model = RandomForestRegressor(n_estimators=100, random_state=1)
 model.fit(X_train, y_train)
 
 y_pred = model.predict(X_test)
 rmse = mean_squared_error(y_test, y_pred, squared=False)
-print(f'RMSE: {rmse:.2f}')
+print(f"RMSE: {rmse:.2f}")
 
 trrr = last_eight = arr[-10:]
 
@@ -778,10 +938,13 @@ array1 = trrr
 array2 = y_pred
 
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=list(range(1, 11)), y=array1, mode='lines', name='Array 1'))
-fig.add_trace(go.Scatter(x=list(range(1, 11)), y=array2, mode='lines', name='Array 2'))
-fig.update_layout(title='Sales Forecast', xaxis_title='Months', yaxis_title='Sales')
-fig.update_traces(mode='lines+markers')
+fig.add_trace(go.Scatter(x=list(range(1, 11)),
+              y=array1, mode="lines", name="Array 1"))
+fig.add_trace(go.Scatter(x=list(range(1, 11)),
+              y=array2, mode="lines", name="Array 2"))
+fig.update_layout(title="Sales Forecast",
+                  xaxis_title="Months", yaxis_title="Sales")
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -790,25 +953,27 @@ fig.show()
 # In[161]:
 
 
-from sklearn.tree import DecisionTreeRegressor
-
 data = ses
 
 train_data = data[:-12]
 test_data = data[-12:]
 
 model = DecisionTreeRegressor(max_depth=3)
-model.fit(train_data[['Months']], train_data['Sales'])
+model.fit(train_data[["Months"]], train_data["Sales"])
 
-predictions = model.predict(test_data[['Months']])
+predictions = model.predict(test_data[["Months"]])
 
-rmse = ((predictions - test_data['Sales'])**2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((predictions - test_data["Sales"]) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
 # plot the actual and predicted sales
-pred_df = pd.DataFrame({'Actual': test_data['Sales'], 'Predicted': predictions}, index=test_data.index)
-fig = px.line(pred_df, x=pred_df.index, y=pred_df.columns, title='Sales Monthly Forecast')
-fig.update_traces(mode='lines+markers')
+pred_df = pd.DataFrame(
+    {"Actual": test_data["Sales"], "Predicted": predictions}, index=test_data.index
+)
+fig = px.line(
+    pred_df, x=pred_df.index, y=pred_df.columns, title="Sales Monthly Forecast"
+)
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -827,7 +992,7 @@ print("Decision Tree Regressor - 2584.86")
 # In[163]:
 
 
-t2 = df[df['category_name_1'] == "Men's Fashion"]
+t2 = df[df["category_name_1"] == "Men's Fashion"]
 
 
 # In[164]:
@@ -838,15 +1003,13 @@ m1 = ["July", "August", "September", "October", "November", "December"]
 arr = []
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -854,18 +1017,29 @@ for year in y:
 
 
 y = [2017.0]
-m1 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+m1 = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -876,27 +1050,79 @@ y = [2018.0]
 m1 = ["January", "February", "March", "April", "May", "June", "July", "August"]
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
-        
+
 print(arr)
 
 
 # In[167]:
 
 
-months = ["July 2016", "Aug 2016", "Sep 2016", "Oct 2016", "Nov 2016", "Dec 2016", "Jan 2017", "Feb 2017", "Mar 2017", "Apr 2017", "May 2017", "June 2017", "July 2017", "Aug 2017", "Sep 2017", "Oct 2017", "Nov 2017", "Dec 2017", "Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018", "May 2018", "June 2018", "July 2018", "Aug 2018"]
-mon = [7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8]
-ses = pd.DataFrame({'Months':mon, 'Sales':arr})
-sss = pd.DataFrame({'Months':months, 'Sales':arr})
+months = [
+    "July 2016",
+    "Aug 2016",
+    "Sep 2016",
+    "Oct 2016",
+    "Nov 2016",
+    "Dec 2016",
+    "Jan 2017",
+    "Feb 2017",
+    "Mar 2017",
+    "Apr 2017",
+    "May 2017",
+    "June 2017",
+    "July 2017",
+    "Aug 2017",
+    "Sep 2017",
+    "Oct 2017",
+    "Nov 2017",
+    "Dec 2017",
+    "Jan 2018",
+    "Feb 2018",
+    "Mar 2018",
+    "Apr 2018",
+    "May 2018",
+    "June 2018",
+    "July 2018",
+    "Aug 2018",
+]
+mon = [
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+]
+ses = pd.DataFrame({"Months": mon, "Sales": arr})
+sss = pd.DataFrame({"Months": months, "Sales": arr})
 sss
 
 
@@ -912,26 +1138,30 @@ fig.show()
 # In[169]:
 
 
-import statsmodels.api as sm
+train_endog = ses["Sales"].iloc[:13]
+train_exog = ses["Months"].iloc[:13]
 
-train_endog = ses['Sales'].iloc[:13] 
-train_exog = ses['Months'].iloc[:13]  
+test_endog = ses["Sales"].iloc[-12:]
+test_exog = ses["Months"].iloc[-12:]
 
-test_endog = ses['Sales'].iloc[-12:]  
-test_exog = ses['Months'].iloc[-12:]  
-
-model = sm.tsa.statespace.SARIMAX(endog=train_endog, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12))
+model = sm.tsa.statespace.SARIMAX(
+    endog=train_endog, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12)
+)
 fit_model = model.fit()
 
-future_exog = test_exog  
+future_exog = test_exog
 future_preds = fit_model.forecast(steps=12, exog=future_exog)
 
-rmse = ((test_endog - future_preds)**2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((test_endog - future_preds) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
-pred_df = pd.DataFrame({'Actual': test_endog, 'Predicted': future_preds}, index=test_endog.index)
-fig = px.line(pred_df, x=pred_df.index, y=pred_df.columns, title='Sales Monthly Forecast')
-fig.update_traces(mode='lines+markers')
+pred_df = pd.DataFrame(
+    {"Actual": test_endog, "Predicted": future_preds}, index=test_endog.index
+)
+fig = px.line(
+    pred_df, x=pred_df.index, y=pred_df.columns, title="Sales Monthly Forecast"
+)
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -940,9 +1170,8 @@ fig.show()
 # In[170]:
 
 
-cr = pd.DataFrame({'Sales':sss["Sales"]})
+cr = pd.DataFrame({"Sales": sss["Sales"]})
 
-from statsmodels.tsa.arima.model import ARIMA
 
 train = cr.iloc[:-12]
 test = cr.iloc[-12:]
@@ -950,10 +1179,11 @@ test = cr.iloc[-12:]
 model = ARIMA(train, order=(1, 1, 1))
 fit_model = model.fit()
 
-preds = fit_model.predict(start=test.index[0], end=test.index[-1], type='levels')
+preds = fit_model.predict(
+    start=test.index[0], end=test.index[-1], type="levels")
 
-rmse = ((test['Sales'] - preds) ** 2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((test["Sales"] - preds) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
 
 # ## Random Forest Regressor
@@ -961,23 +1191,20 @@ print(f'RMSE: {rmse:.2f}')
 # In[171]:
 
 
-from sklearn.ensemble import RandomForestRegressor
-import plotly.graph_objs as go
-
 train_data = ses.sample(frac=0.6, random_state=1)
 test_data = ses.drop(train_data.index)
 
-X_train = train_data[['Months', 'Sales']].values
-y_train = train_data['Sales'].values
-X_test = test_data[['Months', 'Sales']].values
-y_test = test_data['Sales'].values
+X_train = train_data[["Months", "Sales"]].values
+y_train = train_data["Sales"].values
+X_test = test_data[["Months", "Sales"]].values
+y_test = test_data["Sales"].values
 
 model = RandomForestRegressor(n_estimators=100, random_state=1)
 model.fit(X_train, y_train)
 
 y_pred = model.predict(X_test)
 rmse = mean_squared_error(y_test, y_pred, squared=False)
-print(f'RMSE: {rmse:.2f}')
+print(f"RMSE: {rmse:.2f}")
 
 trrr = last_eight = arr[-10:]
 
@@ -985,10 +1212,13 @@ array1 = trrr
 array2 = y_pred
 
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=list(range(1, 11)), y=array1, mode='lines', name='Array 1'))
-fig.add_trace(go.Scatter(x=list(range(1, 11)), y=array2, mode='lines', name='Array 2'))
-fig.update_layout(title='Sales Forecast', xaxis_title='Months', yaxis_title='Sales')
-fig.update_traces(mode='lines+markers')
+fig.add_trace(go.Scatter(x=list(range(1, 11)),
+              y=array1, mode="lines", name="Array 1"))
+fig.add_trace(go.Scatter(x=list(range(1, 11)),
+              y=array2, mode="lines", name="Array 2"))
+fig.update_layout(title="Sales Forecast",
+                  xaxis_title="Months", yaxis_title="Sales")
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -997,24 +1227,26 @@ fig.show()
 # In[172]:
 
 
-from sklearn.tree import DecisionTreeRegressor
-
 data = ses
 
 train_data = data[:-12]
 test_data = data[-12:]
 
 model = DecisionTreeRegressor(max_depth=3)
-model.fit(train_data[['Months']], train_data['Sales'])
+model.fit(train_data[["Months"]], train_data["Sales"])
 
-predictions = model.predict(test_data[['Months']])
+predictions = model.predict(test_data[["Months"]])
 
-rmse = ((predictions - test_data['Sales'])**2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((predictions - test_data["Sales"]) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
-pred_df = pd.DataFrame({'Actual': test_data['Sales'], 'Predicted': predictions}, index=test_data.index)
-fig = px.line(pred_df, x=pred_df.index, y=pred_df.columns, title='Sales Monthly Forecast')
-fig.update_traces(mode='lines+markers')
+pred_df = pd.DataFrame(
+    {"Actual": test_data["Sales"], "Predicted": predictions}, index=test_data.index
+)
+fig = px.line(
+    pred_df, x=pred_df.index, y=pred_df.columns, title="Sales Monthly Forecast"
+)
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -1028,12 +1260,12 @@ print("Random Forest Regressor - 1248.07")
 print("Decision Tree Regressor - 1533.90")
 
 
-# ## Demand Forecasting for Women's Fashion Category 
+# ## Demand Forecasting for Women's Fashion Category
 
 # In[174]:
 
 
-t2 = df[df['category_name_1'] == "Women's Fashion"]
+t2 = df[df["category_name_1"] == "Women's Fashion"]
 
 
 # In[175]:
@@ -1044,15 +1276,13 @@ m1 = ["July", "August", "September", "October", "November", "December"]
 arr = []
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -1060,18 +1290,29 @@ for year in y:
 
 
 y = [2017.0]
-m1 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+m1 = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
 
 
@@ -1082,34 +1323,87 @@ y = [2018.0]
 m1 = ["January", "February", "March", "April", "May", "June", "July", "August"]
 
 for year in y:
-    
     sub = t2[t2["Year"] == year]
-    
+
     for month in m1:
-        
         sub2 = sub[sub["Month Name"] == month]
-        
+
         count = sub2["status"].shape[0]
-        
+
         arr.append(count)
-        
+
 print(arr)
 
 
 # In[178]:
 
 
-months = ["July 2016", "Aug 2016", "Sep 2016", "Oct 2016", "Nov 2016", "Dec 2016", "Jan 2017", "Feb 2017", "Mar 2017", "Apr 2017", "May 2017", "June 2017", "July 2017", "Aug 2017", "Sep 2017", "Oct 2017", "Nov 2017", "Dec 2017", "Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018", "May 2018", "June 2018", "July 2018", "Aug 2018"]
-mon = [7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8]
-ses = pd.DataFrame({'Months':mon, 'Sales':arr})
-sss = pd.DataFrame({'Months':months, 'Sales':arr})
+months = [
+    "July 2016",
+    "Aug 2016",
+    "Sep 2016",
+    "Oct 2016",
+    "Nov 2016",
+    "Dec 2016",
+    "Jan 2017",
+    "Feb 2017",
+    "Mar 2017",
+    "Apr 2017",
+    "May 2017",
+    "June 2017",
+    "July 2017",
+    "Aug 2017",
+    "Sep 2017",
+    "Oct 2017",
+    "Nov 2017",
+    "Dec 2017",
+    "Jan 2018",
+    "Feb 2018",
+    "Mar 2018",
+    "Apr 2018",
+    "May 2018",
+    "June 2018",
+    "July 2018",
+    "Aug 2018",
+]
+mon = [
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+]
+ses = pd.DataFrame({"Months": mon, "Sales": arr})
+sss = pd.DataFrame({"Months": months, "Sales": arr})
 sss
 
 
 # In[179]:
 
 
-fig = px.line(sss, x="Months", y="Sales", title="Women's Fashion Sales History")
+fig = px.line(sss, x="Months", y="Sales",
+              title="Women's Fashion Sales History")
 fig.show()
 
 
@@ -1118,26 +1412,30 @@ fig.show()
 # In[180]:
 
 
-import statsmodels.api as sm
+train_endog = ses["Sales"].iloc[:13]
+train_exog = ses["Months"].iloc[:13]
 
-train_endog = ses['Sales'].iloc[:13] 
-train_exog = ses['Months'].iloc[:13]  
+test_endog = ses["Sales"].iloc[-12:]
+test_exog = ses["Months"].iloc[-12:]
 
-test_endog = ses['Sales'].iloc[-12:]  
-test_exog = ses['Months'].iloc[-12:]  
-
-model = sm.tsa.statespace.SARIMAX(endog=train_endog, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12))
+model = sm.tsa.statespace.SARIMAX(
+    endog=train_endog, exog=train_exog, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12)
+)
 fit_model = model.fit()
 
-future_exog = test_exog  
+future_exog = test_exog
 future_preds = fit_model.forecast(steps=12, exog=future_exog)
 
-rmse = ((test_endog - future_preds)**2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((test_endog - future_preds) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
-pred_df = pd.DataFrame({'Actual': test_endog, 'Predicted': future_preds}, index=test_endog.index)
-fig = px.line(pred_df, x=pred_df.index, y=pred_df.columns, title='Sales Monthly Forecast')
-fig.update_traces(mode='lines+markers')
+pred_df = pd.DataFrame(
+    {"Actual": test_endog, "Predicted": future_preds}, index=test_endog.index
+)
+fig = px.line(
+    pred_df, x=pred_df.index, y=pred_df.columns, title="Sales Monthly Forecast"
+)
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -1146,9 +1444,8 @@ fig.show()
 # In[181]:
 
 
-cr = pd.DataFrame({'Sales':sss["Sales"]})
+cr = pd.DataFrame({"Sales": sss["Sales"]})
 
-from statsmodels.tsa.arima.model import ARIMA
 
 train = cr.iloc[:-12]
 test = cr.iloc[-12:]
@@ -1156,10 +1453,11 @@ test = cr.iloc[-12:]
 model = ARIMA(train, order=(1, 1, 1))
 fit_model = model.fit()
 
-preds = fit_model.predict(start=test.index[0], end=test.index[-1], type='levels')
+preds = fit_model.predict(
+    start=test.index[0], end=test.index[-1], type="levels")
 
-rmse = ((test['Sales'] - preds) ** 2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((test["Sales"] - preds) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
 
 # ## Random Forest Regressor
@@ -1167,23 +1465,20 @@ print(f'RMSE: {rmse:.2f}')
 # In[182]:
 
 
-from sklearn.ensemble import RandomForestRegressor
-import plotly.graph_objs as go
-
 train_data = ses.sample(frac=0.6, random_state=1)
 test_data = ses.drop(train_data.index)
 
-X_train = train_data[['Months', 'Sales']].values
-y_train = train_data['Sales'].values
-X_test = test_data[['Months', 'Sales']].values
-y_test = test_data['Sales'].values
+X_train = train_data[["Months", "Sales"]].values
+y_train = train_data["Sales"].values
+X_test = test_data[["Months", "Sales"]].values
+y_test = test_data["Sales"].values
 
 model = RandomForestRegressor(n_estimators=100, random_state=1)
 model.fit(X_train, y_train)
 
 y_pred = model.predict(X_test)
 rmse = mean_squared_error(y_test, y_pred, squared=False)
-print(f'RMSE: {rmse:.2f}')
+print(f"RMSE: {rmse:.2f}")
 
 trrr = last_eight = arr[-10:]
 
@@ -1191,10 +1486,14 @@ array1 = trrr
 array2 = y_pred
 
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=list(range(1, 11)), y=array1, mode='lines', name='Actual'))
-fig.add_trace(go.Scatter(x=list(range(1, 11)), y=array2, mode='lines', name='Predicted'))
-fig.update_layout(title='Sales Forecast', xaxis_title='Months', yaxis_title='Sales')
-fig.update_traces(mode='lines+markers')
+fig.add_trace(go.Scatter(x=list(range(1, 11)),
+              y=array1, mode="lines", name="Actual"))
+fig.add_trace(
+    go.Scatter(x=list(range(1, 11)), y=array2, mode="lines", name="Predicted")
+)
+fig.update_layout(title="Sales Forecast",
+                  xaxis_title="Months", yaxis_title="Sales")
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
@@ -1203,25 +1502,27 @@ fig.show()
 # In[183]:
 
 
-from sklearn.tree import DecisionTreeRegressor
-
 data = ses
 
 train_data = data[:-12]
 test_data = data[-12:]
 
 model = DecisionTreeRegressor(max_depth=3)
-model.fit(train_data[['Months']], train_data['Sales'])
+model.fit(train_data[["Months"]], train_data["Sales"])
 
-predictions = model.predict(test_data[['Months']])
+predictions = model.predict(test_data[["Months"]])
 
-rmse = ((predictions - test_data['Sales'])**2).mean() ** 0.5
-print(f'RMSE: {rmse:.2f}')
+rmse = ((predictions - test_data["Sales"]) ** 2).mean() ** 0.5
+print(f"RMSE: {rmse:.2f}")
 
 
-pred_df = pd.DataFrame({'Actual': test_data['Sales'], 'Predicted': predictions}, index=test_data.index)
-fig = px.line(pred_df, x=pred_df.index, y=pred_df.columns, title='Sales Monthly Forecast')
-fig.update_traces(mode='lines+markers')
+pred_df = pd.DataFrame(
+    {"Actual": test_data["Sales"], "Predicted": predictions}, index=test_data.index
+)
+fig = px.line(
+    pred_df, x=pred_df.index, y=pred_df.columns, title="Sales Monthly Forecast"
+)
+fig.update_traces(mode="lines+markers")
 fig.show()
 
 
